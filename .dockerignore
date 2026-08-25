@@ -1,0 +1,11 @@
+.env
+.git
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+**/.next
+data
+tests
+AgentProbe.pptx

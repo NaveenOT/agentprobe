@@ -1,0 +1,47 @@
+services:
+  mongodb:
+    image: mongo:8
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      AGENTPROBE_STORAGE_BACKEND: mongodb
+      AGENTPROBE_MONGODB_URI: mongodb://mongodb:27017
+      AGENTPROBE_MONGODB_DATABASE: agentprobe
+      AGENTPROBE_GROQ_API_KEY: ${AGENTPROBE_GROQ_API_KEY:-}
+      AGENTPROBE_GROQ_MODEL: ${AGENTPROBE_GROQ_MODEL:-openai/gpt-oss-120b}
+      AGENTPROBE_GROQ_TARGET_MODEL: ${AGENTPROBE_GROQ_TARGET_MODEL:-openai/gpt-oss-20b}
+      AGENTPROBE_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  mongodb_data:

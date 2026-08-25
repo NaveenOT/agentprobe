@@ -1,0 +1,28 @@
+.metric-strip {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.exchange-label {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font: 700 8px "Courier New", monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.exchange-label + code {
+  margin-top: 4px;
+}
+
+@media (max-width: 850px) {
+  .metric-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+}
