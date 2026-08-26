@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
+
+from agentprobe.objectives import DEFAULT_ATTACK_OUTCOME
 
 
 def utc_now() -> datetime:
@@ -47,20 +49,31 @@ class TargetConfig(BaseModel):
     url: HttpUrl
     model: str | None = None
     selectors: BrowserSelectors | None = None
+    use_browser_profile: bool = False
     authorization_confirmed: bool = False
 
     @model_validator(mode="after")
     def require_authorization(self) -> "TargetConfig":
         if not self.authorization_confirmed:
             raise ValueError("Explicit authorization confirmation is required")
-        if self.type == TargetType.BROWSER and not self.selectors:
-            self.selectors = BrowserSelectors()
+        return self
+
+
+class BrowserSessionRequest(BaseModel):
+    url: HttpUrl
+    authorization_confirmed: bool = False
+
+    @model_validator(mode="after")
+    def require_authorization(self) -> "BrowserSessionRequest":
+        if not self.authorization_confirmed:
+            raise ValueError("Explicit authorization confirmation is required")
         return self
 
 
 class CreateRunRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     target: TargetConfig
+    attack_outcome: str | None = Field(default=None, max_length=500)
     categories: list[AttackCategory] = Field(default_factory=lambda: list(AttackCategory))
     max_attempts: int = Field(default=9, ge=1, le=50)
 
@@ -80,6 +93,13 @@ class AttackTemplate(BaseModel):
     prompt: str
     source: str = "AgentProbe"
     prerequisites: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def add_category_tag(self) -> "AttackTemplate":
+        if self.category.value not in self.tags:
+            self.tags.append(self.category.value)
+        return self
 
 
 class Evaluation(BaseModel):
@@ -148,6 +168,9 @@ class ScanRun(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
     target: TargetConfig
+    requested_outcome: str = ""
+    effective_objective: str = DEFAULT_ATTACK_OUTCOME
+    objective_mode: Literal["attack", "refusal_control"] = "attack"
     categories: list[AttackCategory]
     max_attempts: int
     status: RunStatus = RunStatus.QUEUED

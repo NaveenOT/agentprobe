@@ -2,6 +2,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = Join-Path $root ".venv\Scripts\python.exe"
 $web = Join-Path $root "apps\web"
+$mongo = $null
+$mongoExe = "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe"
 
 if (-not (Test-Path $python)) {
     Write-Host "Creating Python environment..."
@@ -21,7 +23,24 @@ if (-not (Test-Path (Join-Path $web "node_modules"))) {
 }
 
 $env:AGENTPROBE_STORAGE_BACKEND = "memory"
+$env:AGENTPROBE_TEMPLATE_BACKEND = "mongodb"
 $env:NEXT_PUBLIC_API_URL = "http://localhost:8000/api/v1"
+
+$mongoListening = Get-NetTCPConnection -State Listen -LocalPort 27017 -ErrorAction SilentlyContinue
+if (-not $mongoListening) {
+    if (-not (Test-Path $mongoExe)) {
+        throw "MongoDB is not installed at $mongoExe"
+    }
+    $mongoData = Join-Path $root "data\mongodb"
+    if (-not (Test-Path $mongoData)) {
+        New-Item -ItemType Directory -Path $mongoData | Out-Null
+    }
+    Write-Host "Starting local MongoDB..."
+    $mongo = Start-Process -FilePath $mongoExe -ArgumentList @(
+        "--dbpath", $mongoData, "--bind_ip", "127.0.0.1", "--port", "27017", "--quiet"
+    ) -WorkingDirectory $root -NoNewWindow -PassThru
+    Start-Sleep -Seconds 2
+}
 
 Write-Host "Starting AgentProbe without Docker..."
 $api = Start-Process -FilePath $python -ArgumentList @(
@@ -31,8 +50,8 @@ $api = Start-Process -FilePath $python -ArgumentList @(
 ) -WorkingDirectory $root -NoNewWindow -PassThru
 
 $dashboard = Start-Process -FilePath "npm.cmd" -ArgumentList @(
-    "run", "dev", "--prefix", $web
-) -WorkingDirectory $root -NoNewWindow -PassThru
+    "run", "dev"
+) -WorkingDirectory $web -NoNewWindow -PassThru
 
 Write-Host ""
 Write-Host "Dashboard:       http://localhost:3000"
@@ -49,4 +68,5 @@ try {
 finally {
     if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force }
     if (-not $dashboard.HasExited) { Stop-Process -Id $dashboard.Id -Force }
+    if ($mongo -and -not $mongo.HasExited) { Stop-Process -Id $mongo.Id -Force }
 }

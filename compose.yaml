@@ -19,6 +19,7 @@ services:
     restart: unless-stopped
     environment:
       AGENTPROBE_STORAGE_BACKEND: mongodb
+      AGENTPROBE_TEMPLATE_BACKEND: mongodb
       AGENTPROBE_MONGODB_URI: mongodb://mongodb:27017
       AGENTPROBE_MONGODB_DATABASE: agentprobe
       AGENTPROBE_GROQ_API_KEY: ${AGENTPROBE_GROQ_API_KEY:-}

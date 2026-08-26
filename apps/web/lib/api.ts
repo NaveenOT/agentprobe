@@ -9,7 +9,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(body || `Request failed with status ${response.status}`);
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      throw new Error(parsed.detail || body);
+    } catch (error) {
+      if (error instanceof SyntaxError) throw new Error(body);
+      throw error;
+    }
   }
   return response.json() as Promise<T>;
 }
@@ -20,4 +26,9 @@ export const api = {
   getRun: (id: string) => request<ScanRun>(`/runs/${id}`),
   createRun: (payload: unknown) =>
     request<ScanRun>("/runs", { method: "POST", body: JSON.stringify(payload) }),
+  openBrowserSession: (url: string) =>
+    request<{ status: string; message: string }>("/browser/session", {
+      method: "POST",
+      body: JSON.stringify({ url, authorization_confirmed: true }),
+    }),
 };

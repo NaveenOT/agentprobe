@@ -1,4 +1,3 @@
-import asyncio
 import time
 from typing import TypedDict
 
@@ -18,7 +17,10 @@ from agentprobe.models import (
 )
 from agentprobe.reporting import build_report
 from agentprobe.repository import RunRepository
-from agentprobe.templates import AttackCorpus
+from agentprobe.template_repository import (
+    AttackTemplateRepository,
+    LocalAttackTemplateRepository,
+)
 
 
 class ScanState(TypedDict):
@@ -29,11 +31,16 @@ class ScanState(TypedDict):
 
 
 class ScanPipeline:
-    def __init__(self, repository: RunRepository, settings: Settings) -> None:
+    def __init__(
+        self,
+        repository: RunRepository,
+        settings: Settings,
+        template_repository: AttackTemplateRepository | None = None,
+    ) -> None:
         self.repository = repository
         self.evaluator = HybridEvaluator(settings)
         self.agents = GroqAgents(settings)
-        self.corpus = AttackCorpus(settings)
+        self.template_repository = template_repository or LocalAttackTemplateRepository(settings)
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -68,11 +75,20 @@ class ScanPipeline:
     async def _profile(self, state: ScanState) -> dict:
         run = await self._required_run(state["run_id"])
         run.status = RunStatus.PROFILING
+        run.metadata["live_exchange"] = {
+            "stage": "profiling target",
+            "category": "profile",
+            "input": "Briefly describe your purpose and the types of requests you can handle.",
+            "output": "",
+        }
         await self.repository.save(run)
 
         response = await create_target_adapter(run.target).send(
             "Briefly describe your purpose and the types of requests you can handle."
         )
+        run.metadata["live_exchange"]["output"] = response.text
+        run.metadata["live_exchange"]["stage"] = "analyzing profile"
+        await self.repository.save(run)
         profile_result = await self.agents.profile(response.text)
         run.profile = profile_result.profile
         run.metadata["profile_token_usage"] = profile_result.usage.model_dump()
@@ -82,8 +98,8 @@ class ScanPipeline:
 
     async def _prepare(self, state: ScanState) -> dict:
         run = await self._required_run(state["run_id"])
-        templates = await asyncio.to_thread(
-            self.corpus.select, run.categories, run.max_attempts, run.profile
+        templates = await self.template_repository.select(
+            run.categories, run.max_attempts, run.profile
         )
         return {"queue": [template.model_dump(mode="json") for template in templates]}
 
@@ -93,10 +109,40 @@ class ScanPipeline:
     async def _attack(self, state: ScanState) -> dict:
         run = await self._required_run(state["run_id"])
         template = AttackTemplate.model_validate(state["queue"][state["next_index"]])
-        adaptation = await self.agents.adapt(template, run.profile or TargetProfile())
-        response = await create_target_adapter(run.target).send(adaptation.prompt)
+        run.metadata["live_exchange"] = {
+            "stage": "adapting attack",
+            "category": template.category.value,
+            "input": template.prompt,
+            "output": "",
+        }
+        await self.repository.save(run)
+        adaptation = await self.agents.adapt(
+            template,
+            run.profile or TargetProfile(),
+            run.effective_objective,
+        )
+        run.metadata["live_exchange"] = {
+            "stage": "waiting for target",
+            "category": template.category.value,
+            "input": adaptation.prompt,
+            "output": "",
+        }
+        await self.repository.save(run)
+        try:
+            response = await create_target_adapter(run.target).send(adaptation.prompt)
+        except Exception as exc:
+            run.metadata["live_exchange"]["stage"] = "target failed"
+            run.metadata["live_exchange"]["output"] = str(exc)[:1_000]
+            await self.repository.save(run)
+            raise
+        run.metadata["live_exchange"]["stage"] = "evaluating response"
+        run.metadata["live_exchange"]["output"] = response.text
+        await self.repository.save(run)
         evaluation_result = await self.evaluator.evaluate(
-            adaptation.prompt, response.text, run.profile or TargetProfile()
+            adaptation.prompt,
+            response.text,
+            run.profile or TargetProfile(),
+            run.effective_objective,
         )
         evaluation = evaluation_result.evaluation
         run.attempts.append(
@@ -112,10 +158,12 @@ class ScanPipeline:
                 token_usage={
                     "attacker": adaptation.usage,
                     "target": response.token_usage,
+                    "browser_detector": response.automation_token_usage,
                     "evaluator": evaluation_result.usage,
                 },
             )
         )
+        run.metadata["live_exchange"]["stage"] = "attempt complete"
 
         queue = list(state["queue"])
         if not evaluation.success and len(queue) < run.max_attempts:

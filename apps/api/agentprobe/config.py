@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_name: str = "AgentProbe"
     api_prefix: str = "/api/v1"
     storage_backend: Literal["memory", "mongodb"] = "memory"
+    template_backend: Literal["local", "mongodb"] = "mongodb"
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_database: str = "agentprobe"
     groq_api_key: str | None = None
@@ -23,6 +24,8 @@ class Settings(BaseSettings):
     dataset_enabled: bool = True
     dataset_path: Path = Path("hackaprompt_local")
     dataset_sample_limit: int = 5_000
+    browser_profile_dir: Path = Path("data/browser-profile")
+    ai_dom_detection: bool = True
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
 

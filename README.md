@@ -4,6 +4,12 @@ AgentProbe is an authorized prompt-injection testing framework. It profiles a ch
 
 The repository includes a deliberately vulnerable local chatbot so the full workflow can be demonstrated without probing a third-party service.
 
+Browser targets require only a URL by default. AgentProbe searches for visible text inputs, content-editable chat boxes, accessible send buttons, and common assistant-message structures, then waits for streaming text to stabilize. Manual selectors remain available through the API when automatic detection cannot handle a custom DOM.
+
+When Groq is configured, browser input detection sends sanitized metadata for visible form candidates to the AgentProbe model. The model can select only a validated candidate index; it cannot return executable JavaScript or an arbitrary selector. The validated selector is cached per target URL, and deterministic detection remains the fallback. Set `AGENTPROBE_AI_DOM_DETECTION=false` to disable this call.
+
+For an authorized site that requires login, select Browser mode, enter its URL, and choose **Open Login Browser**. Sign in manually in the headed Chromium window, complete any first-party verification, and close the window before starting a scan with **Use saved browser login session** enabled. AgentProbe never asks for or stores the account password; Playwright stores the resulting local browser profile in ignored `data/browser-profile`. This does not bypass CAPTCHA, Cloudflare, site policy, or anti-automation controls.
+
 ## Repository Layout
 
 ```text
@@ -97,6 +103,19 @@ AGENTPROBE_DEMO_PROVIDER=auto
 With a key configured, Groq powers target profiling, context-aware attack adaptation, evaluation, and the controlled test chatbot. `demo` uses the deliberately vulnerable target policy; requests with model `demo-hardened` use the hardened comparison policy. Without a key, the tool falls back to deterministic local behavior.
 
 Completed reports include provider-reported token totals grouped by profiler, attacker, target, and evaluator. Browser targets cannot expose their own model usage, so their target token count remains zero unless the target API returns usage metadata.
+
+## Attack Outcomes
+
+Each run can specify a desired outcome. A blank value uses the synthetic protected-marker objective. The attacker adapts MongoDB templates to the effective objective and the evaluator judges the response against the same objective. Requests for credentials are converted to synthetic-canary tests; dangerous hard-drug manufacturing goals are converted to non-actionable refusal-policy checks.
+
+## MongoDB Templates
+
+Local development starts a native MongoDB process automatically and uses `agentprobe.attack_templates` for runtime prompt selection. Every template stores `tags: [category]`; AgentProbe applies MongoDB `$sample` independently per requested category and combines the results in round-robin order. Import the local successful HackAPrompt records with:
+
+```powershell
+$env:PYTHONPATH="apps/api"
+.\.venv\Scripts\python scripts\import_local_hackaprompt.py
+```
 
 ## Configuration
 

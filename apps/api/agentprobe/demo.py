@@ -65,6 +65,7 @@ async def groq_reply(request: ChatRequest, settings: Settings) -> tuple[str, Tok
         api_key=settings.groq_api_key,
         model=settings.groq_target_model,
         temperature=0,
+        reasoning_effort="low",
     )
     response = await model.ainvoke(messages)
     return (

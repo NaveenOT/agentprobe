@@ -41,3 +41,5 @@ async def test_pipeline_completes_and_persists_report(monkeypatch) -> None:
     assert len(completed.attempts) == 2
     assert completed.report is not None
     assert completed.report.attack_success_rate == 1
+    assert completed.metadata["live_exchange"]["stage"] == "attempt complete"
+    assert PROTECTED_MARKER in completed.metadata["live_exchange"]["output"]

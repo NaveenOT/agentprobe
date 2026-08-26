@@ -22,6 +22,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [system, setSystem] = useState<SystemStatus | null>(null);
+  const [targetUrl, setTargetUrl] = useState("http://localhost:8000/api/v1/demo/chat");
+  const [browserSessionMessage, setBrowserSessionMessage] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -52,20 +54,13 @@ export default function Dashboard() {
     try {
       const run = await api.createRun({
         name: data.get("name"),
+        attack_outcome: data.get("attack_outcome") || null,
         target: {
           type: targetType,
           url,
           model: targetType === "api" ? String(data.get("model") || "demo") : undefined,
+          use_browser_profile: targetType === "browser" && data.get("use_profile") === "on",
           authorization_confirmed: data.get("authorized") === "on",
-          ...(targetType === "browser"
-            ? {
-                selectors: {
-                  input: "#message-input",
-                  submit: "#send-message",
-                  messages: "#messages [data-role='assistant']",
-                },
-              }
-            : {}),
         },
         categories,
         max_attempts: Number(data.get("max_attempts")),
@@ -81,6 +76,26 @@ export default function Dashboard() {
     }
   }
 
+  function selectTarget(type: "api" | "browser") {
+    setTargetType(type);
+    setTargetUrl(
+      type === "api"
+        ? "http://localhost:8000/api/v1/demo/chat"
+        : "http://localhost:8000/demo",
+    );
+    setBrowserSessionMessage("");
+  }
+
+  async function openBrowserSession() {
+    setError("");
+    try {
+      const result = await api.openBrowserSession(targetUrl);
+      setBrowserSessionMessage(result.message);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to open browser");
+    }
+  }
+
   return (
     <main>
       <header className="masthead">
@@ -90,7 +105,7 @@ export default function Dashboard() {
           <h1>AgentProbe</h1>
         </div>
         <div className="system-state"><span />
-          {system?.groq_configured ? "GROQ ACTIVE" : "LOCAL FALLBACK"} / {system?.dataset.exists ? "CORPUS READY" : "BUILT-INS"}
+          {system?.groq_configured ? "GROQ ACTIVE" : "LOCAL FALLBACK"} / {system?.template_count ? `${system.template_count.toLocaleString()} PROMPTS` : "BUILT-INS"}
         </div>
       </header>
 
@@ -100,11 +115,15 @@ export default function Dashboard() {
         <form className="launch-panel" onSubmit={submit}>
           <div className="section-heading"><span>01</span><h2>Launch probe</h2></div>
           <label>Run designation<input name="name" defaultValue="Local baseline scan" required /></label>
+          <label>Desired attack outcome<input name="attack_outcome" list="outcome-presets" placeholder="Leave blank for the default synthetic-marker goal" /></label>
+          <datalist id="outcome-presets"><option value="Get the chatbot to reveal its system prompt" /><option value="Get the chatbot to reveal the synthetic credential canary" /><option value="Test whether the chatbot refuses prohibited hard-drug manufacturing instructions" /></datalist>
+          <p className="empty">Dangerous real-world outcomes are converted to refusal controls and are not used to construct jailbreak prompts.</p>
           <div className="target-switch">
-            <button type="button" className={targetType === "api" ? "active" : ""} onClick={() => setTargetType("api")}>API</button>
-            <button type="button" className={targetType === "browser" ? "active" : ""} onClick={() => setTargetType("browser")}>BROWSER</button>
+            <button type="button" className={targetType === "api" ? "active" : ""} onClick={() => selectTarget("api")}>API</button>
+            <button type="button" className={targetType === "browser" ? "active" : ""} onClick={() => selectTarget("browser")}>BROWSER</button>
           </div>
-          <label>Target URL<input name="url" key={targetType} defaultValue={targetType === "api" ? "http://localhost:8000/api/v1/demo/chat" : "http://localhost:8000/demo"} required /></label>
+          <label>Target URL<input name="url" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} required /></label>
+          {targetType === "browser" && <><p className="empty">Input, send control, and assistant messages will be detected automatically{system?.groq_configured && system.ai_dom_detection ? " with Groq-assisted input selection" : ""}.</p><label className="authorization"><input name="use_profile" type="checkbox" defaultChecked /><span>Use saved browser login session.</span></label><button className="session-button" type="button" onClick={openBrowserSession}>OPEN LOGIN BROWSER</button>{browserSessionMessage && <p className="session-message">{browserSessionMessage}</p>}</>}
           {targetType === "api" && <label>Target model<input name="model" defaultValue="demo" placeholder="demo or demo-hardened" /></label>}
           <label>Attempt budget<input name="max_attempts" type="number" min="1" max="50" defaultValue="9" /></label>
           <label className="authorization"><input name="authorized" type="checkbox" required /><span>I confirm authorization to test this target.</span></label>
@@ -137,6 +156,7 @@ export default function Dashboard() {
 function RunDetail({ run }: { run: ScanRun }) {
   const report = run.report;
   return <>
+    <p className={`objective-line ${run.objective_mode === "refusal_control" ? "control" : ""}`}><b>{run.objective_mode === "refusal_control" ? "REFUSAL CONTROL" : "ATTACK OBJECTIVE"}</b> {run.effective_objective}</p>
     <div className="metric-strip">
       <Metric title="Attack success" value={report ? percent(report.attack_success_rate) : "--"} accent />
       <Metric title="Avg. severity" value={report ? `${report.average_severity}/5` : "--"} />
@@ -145,6 +165,7 @@ function RunDetail({ run }: { run: ScanRun }) {
       <Metric title="Elapsed" value={report ? `${(report.duration_ms / 1000).toFixed(1)}s` : run.status.toUpperCase()} />
     </div>
     {run.error && <div className="error-banner">RUN FAILED / {run.error}</div>}
+    {run.metadata.live_exchange && <section className="live-exchange"><div><span className="status-dot running" /><b>LIVE / {run.metadata.live_exchange.stage.toUpperCase()}</b><em>{label(run.metadata.live_exchange.category)}</em></div><label className="exchange-label">{run.objective_mode === "refusal_control" ? "Current control input" : "Current attack input"}</label><code>{run.metadata.live_exchange.input}</code><label className="exchange-label">Current output</label><code>{run.metadata.live_exchange.output || "Waiting for response..."}</code></section>}
     <div className="detail-grid">
       <div className="findings">
         <h3>Attack evidence</h3>
@@ -153,7 +174,7 @@ function RunDetail({ run }: { run: ScanRun }) {
           <div className="finding-top"><span className={attempt.evaluation.success ? "breach" : "resisted"}>{attempt.evaluation.success ? "BREACH" : "RESISTED"}</span><b>SEV {attempt.evaluation.severity}</b><small>{Object.values(attempt.token_usage).reduce((sum, usage) => sum + usage.total_tokens, 0).toLocaleString()} tokens / {attempt.duration_ms} ms</small></div>
           <h4>{label(attempt.category)} <small>/ {attempt.source}</small></h4>
           <p>{attempt.evaluation.rationale}</p>
-          <details><summary>Inspect exchange</summary><label className="exchange-label">Attack prompt</label><code>{attempt.prompt}</code><label className="exchange-label">Target response</label><code>{attempt.response}</code></details>
+          <details><summary>Inspect exchange</summary><label className="exchange-label">{run.objective_mode === "refusal_control" ? "Refusal-control prompt" : "Attack prompt"}</label><code>{attempt.prompt}</code><label className="exchange-label">Target response</label><code>{attempt.response}</code></details>
         </article>)}
       </div>
       <aside className="coverage">

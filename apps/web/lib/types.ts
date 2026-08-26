@@ -62,11 +62,22 @@ export interface ScanRun {
   id: string;
   name: string;
   status: RunStatus;
+  requested_outcome: string;
+  effective_objective: string;
+  objective_mode: "attack" | "refusal_control";
   target: { type: "api" | "browser"; url: string };
   attempts: Attempt[];
   report: Report | null;
   error: string | null;
   created_at: string;
+  metadata: {
+    live_exchange?: {
+      stage: string;
+      category: string;
+      input: string;
+      output: string;
+    };
+  };
 }
 
 export interface SystemStatus {
@@ -74,6 +85,9 @@ export interface SystemStatus {
   target_provider: string;
   agent_model: string;
   target_model: string;
+  ai_dom_detection: boolean;
+  template_backend: string;
+  template_count: number;
   dataset: {
     enabled: boolean;
     path: string;
