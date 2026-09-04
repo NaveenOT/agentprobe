@@ -60,3 +60,29 @@
   border-left-color: var(--cyan);
   background: rgba(40, 125, 142, 0.1);
 }
+
+.profile-log {
+  margin: 12px 0 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.35);
+  padding: 12px;
+}
+
+.profile-log summary {
+  cursor: pointer;
+  text-transform: uppercase;
+  font: 700 9px "Courier New", monospace;
+  letter-spacing: 0.08em;
+}
+
+.profile-log code {
+  display: block;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--ink);
+  color: #d9e3e8;
+  padding: 10px;
+  font-size: 10px;
+}

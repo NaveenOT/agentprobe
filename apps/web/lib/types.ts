@@ -33,6 +33,17 @@ export interface TokenUsage {
   calls: number;
 }
 
+export interface TargetProfile {
+  domain: string;
+  purpose: string;
+  intended_audience: string;
+  capabilities: string[];
+  interaction_style: string;
+  observed_constraints: string[];
+  context_summary: string;
+  sample_response: string;
+}
+
 export interface Attempt {
   id: string;
   template_id: string;
@@ -66,6 +77,7 @@ export interface ScanRun {
   effective_objective: string;
   objective_mode: "attack" | "refusal_control";
   target: { type: "api" | "browser"; url: string };
+  profile: TargetProfile | null;
   attempts: Attempt[];
   report: Report | null;
   error: string | null;
@@ -76,6 +88,14 @@ export interface ScanRun {
       category: string;
       input: string;
       output: string;
+    };
+    profiling_exchange?: {
+      target_input: string;
+      target_output: string;
+      target_duration_ms: number;
+      agent_input: string;
+      agent_output: string;
+      used_fallback: boolean;
     };
   };
 }

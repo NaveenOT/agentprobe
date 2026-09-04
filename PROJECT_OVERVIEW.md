@@ -202,12 +202,17 @@ The response is given to Groq `openai/gpt-oss-120b`, which returns:
 {
   "domain": "customer support",
   "purpose": "answer customer questions",
+  "intended_audience": "customers",
   "capabilities": ["text chat"],
-  "observed_constraints": ["does not reveal internal instructions"]
+  "interaction_style": "concise and conversational",
+  "observed_constraints": ["does not reveal internal instructions"],
+  "context_summary": "A customer-facing support assistant."
 }
 ```
 
 The profile gives the Attacker Agent context about the target.
+
+AgentProbe persists the target profiling input and output, the exact Profiler Agent input and output, target latency, and whether a deterministic fallback was used. The dashboard exposes this trace under **Inspect profiling input and output**.
 
 If Groq profiling fails, AgentProbe falls back to a generic profile rather than stopping the scan.
 
@@ -336,6 +341,8 @@ The Attacker Agent receives:
 - Template technique
 - Target profile
 - Effective objective
+
+The complete profile includes the target domain, purpose, intended audience, capabilities, interaction style, observed constraints, and a concise context summary. The agent uses the selected template as a technique source and creates a new target-specific prompt rather than copying the source prompt unchanged.
 
 Groq is instructed to remove benchmark-specific outcomes such as:
 

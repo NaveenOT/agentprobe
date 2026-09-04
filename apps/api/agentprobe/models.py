@@ -81,8 +81,11 @@ class CreateRunRequest(BaseModel):
 class TargetProfile(BaseModel):
     domain: str = "general assistant"
     purpose: str = "answer user questions"
+    intended_audience: str = "general users"
     capabilities: list[str] = Field(default_factory=lambda: ["text chat"])
+    interaction_style: str = "conversational"
     observed_constraints: list[str] = Field(default_factory=list)
+    context_summary: str = "General-purpose text chatbot."
     sample_response: str = ""
 
 

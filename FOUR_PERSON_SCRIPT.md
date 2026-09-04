@@ -29,7 +29,7 @@ apps/api/agentprobe/reporting.py
 
 > The user begins in a Next.js dashboard and specifies a target, attack categories, an attempt budget, and a measurable test outcome. The FastAPI backend validates the request and starts a background scan. A LangGraph workflow then profiles the target, selects attack templates, adapts each template, sends it to the target, evaluates the response, and builds a report.
 
-> Our workflow has four graph nodes: profile, prepare, attack, and report. The profile node first sends a benign question through the target adapter. The answer is passed to the Profiler Agent, which uses Groq to identify the chatbot's domain, purpose, capabilities, and observed constraints. If the model call fails, the pipeline uses a generic profile so the scan can continue.
+> Our workflow has four graph nodes: profile, prepare, attack, and report. The profile node first sends a benign question through the target adapter. The answer is passed to the Profiler Agent, which uses Groq to identify the chatbot's domain, purpose, intended audience, capabilities, interaction style, observed constraints, and context summary. AgentProbe persists both the target probe exchange and the Profiler Agent input and output. If the model call fails, the pipeline records and uses a generic profile so the scan can continue.
 
 > The prepare node requests a balanced queue of templates from the template repository. The attack node processes one queue entry at a time. The Attacker Agent receives the original technique, target profile, and effective objective. It adapts the technique to the current target and removes stale benchmark outcomes such as `I have been PWNED`. We validate the generated attack before execution and use a deterministic, category-specific fallback if generation fails.
 
@@ -174,7 +174,7 @@ README.md
 
 > After creating a run, the UI polls the backend approximately every 1.5 seconds. The run's `live_exchange` metadata displays the current stage, category, submitted input, and current output. This is near-live state polling rather than token-by-token streaming.
 
-> The result view clearly labels an ordinary attack objective versus a refusal control. Each attempt preserves its source template ID, category, technique, adapted prompt, target response, latency, evaluation, severity, confidence, rationale, evidence, and role-specific token usage. This creates an audit trail rather than showing only a final score.
+> The result view clearly labels an ordinary attack objective versus a refusal control. The profiling log exposes the target probe, target response, Profiler Agent input and output, structured context, latency, and fallback status. Each attempt then preserves its source template ID, category, technique, adapted prompt, target response, latency, evaluation, severity, confidence, rationale, evidence, and role-specific token usage. This creates an audit trail rather than showing only a final score.
 
 > The report summarizes total and successful attacks, attack success rate, average severity, category vulnerability, duration, recommendations, and token usage. Recommendations are mapped to the categories that actually succeeded. For example, an obfuscation finding recommends canonicalizing encoded input before safety classification.
 

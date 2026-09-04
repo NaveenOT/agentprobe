@@ -102,6 +102,7 @@ apps/web/lib/types.ts
 - Open the manual browser-login workflow.
 - Fetch system status and run history.
 - Poll active runs approximately every 1.5 seconds.
+- Display the persisted target and Profiler Agent input/output trace and structured profile.
 - Show objective mode, live exchange, findings, severity, evidence, metrics, recommendations, and token usage.
 - Maintain TypeScript interfaces that mirror backend JSON contracts.
 
@@ -223,7 +224,7 @@ apps/api/agentprobe/objectives.py
 |---|---|
 | `TargetConfig` | API/browser location, model, optional selectors/profile, authorization |
 | `CreateRunRequest` | Scan name, target, outcome, categories, budget |
-| `TargetProfile` | Domain, purpose, capabilities, constraints, sample response |
+| `TargetProfile` | Domain, purpose, audience, capabilities, style, constraints, context summary, sample response |
 | `AttackTemplate` | Technique source plus required category tag |
 | `Evaluation` | Success, severity, confidence, rationale, evidence |
 | `TokenUsage` | Input, output, total tokens, and calls |
@@ -368,9 +369,9 @@ apps/api/agentprobe/agents.py
 
 Input: one benign target response.
 
-Output: `ProfileResult` containing a validated `TargetProfile` and provider-reported `TokenUsage`.
+Output: `ProfileResult` containing a validated `TargetProfile`, provider-reported `TokenUsage`, exact agent input/output, and fallback status.
 
-Fallback: generic domain, purpose, text-chat capability, and the original response as the sample.
+Fallback: generic domain, purpose, audience, text-chat capability, interaction style, context summary, and the original response as the sample. The pipeline persists the target probe input/output and the Profiler Agent input/output in `ScanRun.metadata.profiling_exchange`.
 
 ### Attacker Contract
 
