@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 def test_app_starts_without_mongodb() -> None:
     os.environ["AGENTPROBE_TEMPLATE_BACKEND"] = "local"
-    from agentprobe.config import get_settings
+    from agentprobe.models import get_settings
 
     get_settings.cache_clear()
     from agentprobe.main import app

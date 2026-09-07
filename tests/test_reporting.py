@@ -1,5 +1,5 @@
 from agentprobe.models import AttackAttempt, AttackCategory, Evaluation, TokenUsage
-from agentprobe.reporting import build_report
+from agentprobe.pipeline import build_report
 
 
 def attempt(category: AttackCategory, success: bool, severity: int) -> AttackAttempt:

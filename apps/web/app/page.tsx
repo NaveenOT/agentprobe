@@ -2,10 +2,7 @@
 
 import { FormEvent, startTransition, useCallback, useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
-import { categories, ScanRun, SystemStatus } from "@/lib/types";
-
-const activeStatuses = new Set(["queued", "profiling", "running", "reporting"]);
+import { api, categories, ScanRun, SystemStatus } from "@/lib/api";
 
 function percent(value: number) {
   return `${Math.round(value * 100)}%`;
@@ -157,6 +154,7 @@ function RunDetail({ run }: { run: ScanRun }) {
   const report = run.report;
   return <>
     <p className={`objective-line ${run.objective_mode === "refusal_control" ? "control" : ""}`}><b>{run.objective_mode === "refusal_control" ? "REFUSAL CONTROL" : "ATTACK OBJECTIVE"}</b> {run.effective_objective}</p>
+    {run.metadata.profiling_exchange && <details className="profile-log"><summary>Inspect profiling input and output</summary><label className="exchange-label">Target profiling input</label><code>{run.metadata.profiling_exchange.target_input}</code><label className="exchange-label">Target profiling output / {run.metadata.profiling_exchange.target_duration_ms} ms</label><code>{run.metadata.profiling_exchange.target_output}</code><label className="exchange-label">Profiler agent input</label><code>{run.metadata.profiling_exchange.agent_input}</code><label className="exchange-label">Profiler agent output / {run.metadata.profiling_exchange.used_fallback ? "deterministic fallback" : "Groq"}</label><code>{run.metadata.profiling_exchange.agent_output}</code>{run.profile && <><label className="exchange-label">Structured context</label><code>{JSON.stringify(run.profile, null, 2)}</code></>}</details>}
     <div className="metric-strip">
       <Metric title="Attack success" value={report ? percent(report.attack_success_rate) : "--"} accent />
       <Metric title="Avg. severity" value={report ? `${report.average_severity}/5` : "--"} />

@@ -1,6 +1,5 @@
 from agentprobe.agents import build_objective_prompt, is_usable_adaptation
-from agentprobe.models import AttackCategory, AttackTemplate
-from agentprobe.objectives import normalize_attack_outcome
+from agentprobe.models import AttackCategory, AttackTemplate, normalize_attack_outcome
 from agentprobe.templates import classify_attack
 
 

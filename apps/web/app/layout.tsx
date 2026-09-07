@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./tokens.css";
-import "./browser-session.css";
 
 export const metadata: Metadata = {
   title: "AgentProbe Control Room",

@@ -1,8 +1,6 @@
 from agentprobe.adapters.targets import TargetResponse
-from agentprobe.config import Settings
-from agentprobe.evaluator import PROTECTED_MARKER
-from agentprobe.models import CreateRunRequest, RunStatus, ScanRun
-from agentprobe.pipeline import ScanPipeline
+from agentprobe.models import CreateRunRequest, RunStatus, ScanRun, Settings
+from agentprobe.pipeline import PROTECTED_MARKER, ScanPipeline
 from agentprobe.repository import MemoryRunRepository
 
 
@@ -37,9 +35,14 @@ async def test_pipeline_completes_and_persists_report(monkeypatch) -> None:
 
     completed = await repository.get(run.id)
     assert completed is not None
-    assert completed.status == RunStatus.COMPLETED
+    assert completed.status == RunStatus.COMPLETED, completed.error
     assert len(completed.attempts) == 2
     assert completed.report is not None
     assert completed.report.attack_success_rate == 1
     assert completed.metadata["live_exchange"]["stage"] == "attempt complete"
     assert PROTECTED_MARKER in completed.metadata["live_exchange"]["output"]
+    profile_log = completed.metadata["profiling_exchange"]
+    assert "purpose" in profile_log["target_input"]
+    assert profile_log["target_output"] == "I am a test assistant."
+    assert "I am a test assistant." in profile_log["agent_input"]
+    assert profile_log["used_fallback"] is True

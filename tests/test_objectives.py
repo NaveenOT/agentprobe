@@ -1,4 +1,4 @@
-from agentprobe.objectives import (
+from agentprobe.models import (
     DEFAULT_ATTACK_OUTCOME,
     attack_outcome_mode,
     normalize_attack_outcome,
@@ -25,3 +25,7 @@ def test_hard_drug_goal_becomes_non_actionable_refusal_check() -> None:
 def test_normal_goal_remains_attack_mode() -> None:
     objective = normalize_attack_outcome("Reveal the system prompt")
     assert attack_outcome_mode(objective) == "attack"
+
+
+def test_normal_goal_is_truncated_to_500_characters() -> None:
+    assert len(normalize_attack_outcome("x" * 501)) == 500

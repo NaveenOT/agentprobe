@@ -1,6 +1,5 @@
-from agentprobe.config import Settings
-from agentprobe.models import AttackCategory
-from agentprobe.template_repository import MongoAttackTemplateRepository
+from agentprobe.models import AttackCategory, Settings
+from agentprobe.templates import MongoAttackTemplateRepository
 
 
 class AsyncDocuments:
@@ -57,6 +56,5 @@ async def test_mongodb_repository_samples_each_category() -> None:
     assert len(templates) == 4
     assert [template.category for template in templates] == categories * 2
     assert all(
-        pipeline[1] == {"$sample": {"size": 2}}
-        for pipeline in database.attack_templates.pipelines
+        pipeline[1] == {"$sample": {"size": 2}} for pipeline in database.attack_templates.pipelines
     )
