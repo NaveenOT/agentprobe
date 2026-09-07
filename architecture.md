@@ -8,6 +8,29 @@ Related review documents:
 - [`FOUR_PERSON_SCRIPT.md`](FOUR_PERSON_SCRIPT.md): four-person speaking and demo script
 - [`README.md`](README.md): setup and operational instructions
 
+### Consolidated Source Map
+
+The runtime backend is organized into seven substantive modules. Consolidation did not replace the workflow engine: LangGraph remains in `pipeline.py`.
+
+| Backend module | Consolidated responsibility |
+|---|---|
+| `apps/api/agentprobe/models.py` | `Settings`, `get_settings`, objective policy, and Pydantic domain models |
+| `apps/api/agentprobe/agents.py` | Groq-backed profiling and attack adaptation with deterministic fallbacks |
+| `apps/api/agentprobe/pipeline.py` | LangGraph orchestration, hybrid evaluation, report construction, and telemetry aggregation |
+| `apps/api/agentprobe/templates.py` | Built-in templates, local dataset loading, classification, and local/Mongo template repositories |
+| `apps/api/agentprobe/repository.py` | Run repository protocol plus memory and MongoDB implementations |
+| `apps/api/agentprobe/adapters/targets.py` | API and Playwright browser target adapters |
+| `apps/api/agentprobe/main.py` | FastAPI application, browser session manager, and controlled demo target |
+
+The dashboard has four authored frontend source files.
+
+| Frontend file | Responsibility |
+|---|---|
+| `apps/web/app/layout.tsx` | Root document layout and global stylesheet loading |
+| `apps/web/app/page.tsx` | Scan configuration, polling, live telemetry, and report UI |
+| `apps/web/app/globals.css` | All application, responsive, and browser-session styles |
+| `apps/web/lib/api.ts` | REST API client and shared TypeScript contracts |
+
 ## 1. System Context
 
 AgentProbe is an authorized security-testing system. A reviewer configures a scan in the dashboard. The API creates a run and invokes a LangGraph workflow. The workflow profiles the target, retrieves category-balanced templates, adapts them to an effective objective, executes them through an API or browser adapter, evaluates each response, and generates aggregate metrics.
@@ -89,10 +112,7 @@ sequenceDiagram
 apps/web/app/page.tsx
 apps/web/app/layout.tsx
 apps/web/app/globals.css
-apps/web/app/tokens.css
-apps/web/app/browser-session.css
 apps/web/lib/api.ts
-apps/web/lib/types.ts
 ```
 
 ### Responsibilities
@@ -104,7 +124,7 @@ apps/web/lib/types.ts
 - Poll active runs approximately every 1.5 seconds.
 - Display the persisted target and Profiler Agent input/output trace and structured profile.
 - Show objective mode, live exchange, findings, severity, evidence, metrics, recommendations, and token usage.
-- Maintain TypeScript interfaces that mirror backend JSON contracts.
+- Maintain TypeScript interfaces that mirror backend JSON contracts in the same file as the API client.
 
 ### Interfaces
 
@@ -150,13 +170,12 @@ Create a detailed component architecture diagram and explanation for the AgentPr
 
 ```text
 apps/api/agentprobe/main.py
-apps/api/agentprobe/config.py
 apps/api/agentprobe/models.py
 ```
 
 ### Responsibilities
 
-- Configure application lifespan, CORS, repositories, indexes, browser sessions, and pipeline dependencies.
+- Configure application lifespan, CORS, repositories, indexes, browser sessions, controlled demo behavior, and pipeline dependencies.
 - Validate inbound JSON with Pydantic.
 - Require explicit authorization for scans and browser sessions.
 - Normalize the requested outcome and assign objective mode.
@@ -201,7 +220,7 @@ flowchart TB
 
 ### Configuration
 
-All backend environment variables use the `AGENTPROBE_` prefix. Major settings include storage and template backends, MongoDB URI/database, Groq models and key, dataset path, browser-profile directory, AI DOM detection, and CORS origins.
+All backend environment variables use the `AGENTPROBE_` prefix. `Settings` and cached `get_settings()` are defined in `models.py`. Major settings include storage and template backends, MongoDB URI/database, Groq models and key, dataset path, browser-profile directory, AI DOM detection, and CORS origins.
 
 ### Gemini Prompt
 
@@ -215,8 +234,9 @@ Generate a Mermaid component diagram and technical explanation for AgentProbe's 
 
 ```text
 apps/api/agentprobe/models.py
-apps/api/agentprobe/objectives.py
 ```
+
+Configuration, objective normalization, and domain contracts are intentionally colocated in this module.
 
 ### Core Models
 
@@ -415,9 +435,10 @@ Generate a Mermaid architecture diagram and interface explanation for AgentProbe
 
 ```text
 apps/api/agentprobe/templates.py
-apps/api/agentprobe/template_repository.py
 scripts/import_local_hackaprompt.py
 ```
+
+`templates.py` owns the built-in corpus, local dataset loader and classifier, repository protocol, and local and MongoDB repository implementations.
 
 ### Data Model
 
@@ -532,8 +553,10 @@ Document AgentProbe's TargetAdapter architecture with a Mermaid class or compone
 
 ```text
 apps/api/agentprobe/adapters/targets.py
-apps/api/agentprobe/browser_sessions.py
+apps/api/agentprobe/main.py
 ```
+
+Target execution remains in `adapters/targets.py`; the headed persistent-login session manager is part of the FastAPI application module.
 
 ### Input Detection Priority
 
@@ -607,8 +630,10 @@ Generate two Mermaid diagrams for AgentProbe browser automation: one execution f
 ### File
 
 ```text
-apps/api/agentprobe/evaluator.py
+apps/api/agentprobe/pipeline.py
 ```
+
+The evaluator is colocated with the LangGraph nodes that invoke it; this is a module consolidation, not a change to the evaluation layers.
 
 ### Evaluation Layers
 
@@ -647,10 +672,11 @@ Create a Mermaid decision diagram and technical description for AgentProbe's Hyb
 ### Files
 
 ```text
-apps/api/agentprobe/reporting.py
 apps/api/agentprobe/pipeline.py
 apps/web/app/page.tsx
 ```
+
+Report calculation and token aggregation are implemented beside orchestration in `pipeline.py`; the dashboard renders the resulting report.
 
 ### Metrics
 
@@ -705,8 +731,10 @@ Generate a Mermaid reporting and telemetry architecture for AgentProbe. Each Att
 ### File
 
 ```text
-apps/api/agentprobe/demo.py
+apps/api/agentprobe/main.py
 ```
+
+The controlled API route, browser page, weak/hardened policies, and provider selection are part of the FastAPI application module.
 
 ### Purpose
 
@@ -744,8 +772,9 @@ Create a Mermaid component diagram for AgentProbe's controlled demo chatbot. Sho
 ### Files
 
 ```text
-apps/api/agentprobe/config.py
+apps/api/agentprobe/models.py
 apps/api/agentprobe/repository.py
+apps/api/agentprobe/templates.py
 start-local.cmd
 start-local.ps1
 compose.yaml

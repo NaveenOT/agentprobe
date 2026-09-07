@@ -15,20 +15,28 @@ For an authorized site that requires login, select Browser mode, enter its URL, 
 ```text
 apps/
   api/agentprobe/
-    adapters/       API and Playwright target adapters
-    main.py         FastAPI application and scan endpoints
-    pipeline.py     LangGraph scan orchestration
-    evaluator.py    Deterministic and optional Groq judge
-    reporting.py    Metrics and remediation aggregation
-    demo.py         Controlled vulnerable target
+    models.py       Settings, objective policy, and Pydantic models
+    agents.py       Target profiling and attack adaptation
+    pipeline.py     LangGraph orchestration, evaluation, and reporting
+    templates.py    Built-ins, local dataset/classifier, and template repositories
+    repository.py   In-memory and MongoDB run repositories
+    adapters/
+      targets.py    API and Playwright target adapters
+    main.py         FastAPI, browser sessions, and controlled demo
   web/
-    app/            Next.js dashboard
-    lib/            API client and shared UI types
+    app/
+      layout.tsx    Root Next.js layout
+      page.tsx      Dashboard and scan workflow
+      globals.css   All dashboard and browser-session styles
+    lib/
+      api.ts        API client and shared TypeScript contracts
 infra/              Container definitions
 scripts/            Optional public dataset importers
 tests/              Backend unit and graph tests
 compose.yaml        MongoDB, API, and dashboard stack
 ```
+
+The application architecture is intentionally compact: seven substantive backend modules and four authored frontend source files contain the runtime implementation. LangGraph remains the scan orchestrator; related backend responsibilities were consolidated into the modules above rather than removed.
 
 ## Quick Start With Docker
 

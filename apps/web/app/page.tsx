@@ -2,10 +2,7 @@
 
 import { FormEvent, startTransition, useCallback, useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
-import { categories, ScanRun, SystemStatus } from "@/lib/types";
-
-const activeStatuses = new Set(["queued", "profiling", "running", "reporting"]);
+import { api, categories, ScanRun, SystemStatus } from "@/lib/api";
 
 function percent(value: number) {
   return `${Math.round(value * 100)}%`;

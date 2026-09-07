@@ -1,6 +1,5 @@
 from agentprobe.agents import GroqAgents, build_attacker_prompt, build_profile_prompt
-from agentprobe.config import Settings
-from agentprobe.models import AttackCategory, AttackTemplate, TargetProfile
+from agentprobe.models import AttackCategory, AttackTemplate, Settings, TargetProfile
 
 
 def test_profile_prompt_requests_rich_context_and_preserves_sample() -> None:

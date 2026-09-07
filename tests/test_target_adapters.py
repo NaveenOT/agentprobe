@@ -9,9 +9,9 @@ from agentprobe.adapters.targets import (
     BrowserTargetAdapter,
     parse_candidate_index,
 )
-from agentprobe.demo import router
-from agentprobe.evaluator import PROTECTED_MARKER
-from agentprobe.models import TargetConfig, TargetType
+from agentprobe.main import demo_router
+from agentprobe.models import Settings, TargetConfig, TargetType, get_settings
+from agentprobe.pipeline import PROTECTED_MARKER
 from fastapi import FastAPI
 
 
@@ -39,7 +39,10 @@ def test_ai_dom_candidate_index_is_constrained() -> None:
 async def test_api_and_browser_adapters_reach_controlled_target() -> None:
     port = unused_port()
     test_app = FastAPI()
-    test_app.include_router(router)
+    test_app.dependency_overrides[get_settings] = lambda: Settings(
+        demo_provider="deterministic", groq_api_key=None
+    )
+    test_app.include_router(demo_router)
     server = uvicorn.Server(
         uvicorn.Config(test_app, host="127.0.0.1", port=port, log_level="error")
     )

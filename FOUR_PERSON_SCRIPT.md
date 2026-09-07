@@ -2,6 +2,8 @@
 
 This script is designed for a 12-16 minute technical review followed by questions. Replace the person placeholders with team member names and rehearse the handoffs so the project sounds like one integrated system rather than four unrelated modules.
 
+The consolidated implementation has seven substantive backend modules: `models.py`, `agents.py`, `pipeline.py`, `templates.py`, `repository.py`, `adapters/targets.py`, and `main.py`. Its four authored frontend source files are `app/layout.tsx`, `app/page.tsx`, `app/globals.css`, and `lib/api.ts`; the team split below assigns responsibility by concern where consolidated modules span speakers.
+
 ## Speaking Order
 
 | Speaker | Area | Suggested time |
@@ -18,10 +20,10 @@ This script is designed for a 12-16 minute technical review followed by question
 ```text
 apps/api/agentprobe/pipeline.py
 apps/api/agentprobe/agents.py
-apps/api/agentprobe/objectives.py
-apps/api/agentprobe/evaluator.py
-apps/api/agentprobe/reporting.py
+apps/api/agentprobe/models.py (objective policy)
 ```
+
+`pipeline.py` retains the LangGraph workflow and now also contains the hybrid evaluator and deterministic report builder.
 
 ### Script
 
@@ -63,8 +65,7 @@ apps/api/agentprobe/reporting.py
 
 ```text
 apps/api/agentprobe/adapters/targets.py
-apps/api/agentprobe/browser_sessions.py
-apps/api/agentprobe/demo.py
+apps/api/agentprobe/main.py (browser session manager and controlled demo)
 tests/test_target_adapters.py
 ```
 
@@ -108,10 +109,8 @@ tests/test_target_adapters.py
 
 ```text
 apps/api/agentprobe/main.py
-apps/api/agentprobe/config.py
 apps/api/agentprobe/models.py
 apps/api/agentprobe/repository.py
-apps/api/agentprobe/template_repository.py
 apps/api/agentprobe/templates.py
 scripts/import_local_hackaprompt.py
 start-local.ps1
@@ -132,7 +131,7 @@ compose.yaml
 
 > The HackAPrompt source does not contain our nine-category taxonomy, so the importer classifies records using explicit keyword rules. It filters for successful submissions, removes duplicates, rejects invalid lengths, creates stable hash-based IDs, and records the original level and source. This is transparent and reproducible, although it is heuristic rather than semantic classification.
 
-> At startup, FastAPI selects run and template repositories from environment settings, creates MongoDB indexes, initializes the browser-session manager, and constructs one shared pipeline. Important indexes cover unique IDs, tags, and category plus source.
+> At startup, FastAPI selects run and template repositories from the settings defined in `models.py`, creates MongoDB indexes, initializes the browser-session manager, and constructs one shared pipeline. Important indexes cover unique IDs, tags, and category plus source.
 
 ### Handoff
 
@@ -158,17 +157,15 @@ compose.yaml
 
 ```text
 apps/web/app/page.tsx
+apps/web/app/layout.tsx
 apps/web/app/globals.css
-apps/web/app/tokens.css
-apps/web/app/browser-session.css
 apps/web/lib/api.ts
-apps/web/lib/types.ts
 README.md
 ```
 
 ### Script
 
-> The dashboard is implemented in Next.js and React with TypeScript contracts matching the backend models. It is a single operational view for configuration, live execution, evidence inspection, and final reporting.
+> The dashboard is implemented in Next.js and React with TypeScript contracts matching the backend models. Its four authored source files are the root layout, dashboard page, consolidated global stylesheet, and API client with shared types. It is a single operational view for configuration, live execution, evidence inspection, and final reporting.
 
 > The form supports API and browser targets, the desired outcome, attempt budget, and explicit authorization. Browser mode exposes the saved-session controls. Before a scan, the dashboard also retrieves system status, including whether Groq is configured, which models are active, whether AI DOM detection is enabled, the template backend, and the current template count.
 

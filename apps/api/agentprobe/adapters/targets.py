@@ -6,8 +6,7 @@ from typing import Protocol
 
 import httpx
 
-from agentprobe.config import get_settings
-from agentprobe.models import TargetConfig, TargetType, TokenUsage
+from agentprobe.models import TargetConfig, TargetType, TokenUsage, get_settings
 
 
 @dataclass
@@ -66,15 +65,13 @@ class ApiTargetAdapter:
 
 class BrowserTargetAdapter:
     _input_selector_cache: dict[str, str] = {}
-    INPUT_CANDIDATE_QUERY = (
-        'textarea, input, [contenteditable="true"], [role="textbox"]'
-    )
+    INPUT_CANDIDATE_QUERY = 'textarea, input, [contenteditable="true"], [role="textbox"]'
     INPUT_CANDIDATES = (
         "textarea",
         '[contenteditable="true"][role="textbox"]',
         '[contenteditable="true"]',
         'input[type="text"]',
-        'input:not([type])',
+        "input:not([type])",
     )
     SUBMIT_CANDIDATES = (
         'button[aria-label*="send" i]',
@@ -87,9 +84,9 @@ class BrowserTargetAdapter:
         '[data-role="assistant"]',
         '[data-testid*="assistant" i]',
         '[class*="assistant" i]',
-        'main article',
+        "main article",
         'main [role="article"]',
-        'main .markdown',
+        "main .markdown",
     )
 
     def __init__(self, config: TargetConfig) -> None:

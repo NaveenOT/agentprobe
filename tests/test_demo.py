@@ -1,7 +1,6 @@
-from agentprobe.config import Settings
-from agentprobe.demo import ChatMessage, ChatRequest, demo_chat, demo_reply
-from agentprobe.evaluator import PROTECTED_MARKER
-from agentprobe.models import TokenUsage
+from agentprobe.main import ChatMessage, ChatRequest, demo_chat, demo_reply
+from agentprobe.models import Settings, TokenUsage
+from agentprobe.pipeline import PROTECTED_MARKER
 
 
 def test_demo_target_is_deliberately_vulnerable() -> None:
@@ -20,7 +19,7 @@ async def test_demo_target_uses_groq_when_configured(monkeypatch) -> None:
         usage = TokenUsage(input_tokens=10, output_tokens=3, total_tokens=13, calls=1)
         return "real model response", usage
 
-    monkeypatch.setattr("agentprobe.demo.groq_reply", fake_groq_reply)
+    monkeypatch.setattr("agentprobe.main.groq_reply", fake_groq_reply)
     request = ChatRequest(messages=[ChatMessage(role="user", content="hello")])
     response = await demo_chat(
         request,

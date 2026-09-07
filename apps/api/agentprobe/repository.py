@@ -30,9 +30,7 @@ class MongoRunRepository:
 
     async def save(self, run: ScanRun) -> ScanRun:
         run.updated_at = utc_now()
-        await self.collection.replace_one(
-            {"id": run.id}, run.model_dump(mode="json"), upsert=True
-        )
+        await self.collection.replace_one({"id": run.id}, run.model_dump(mode="json"), upsert=True)
         return run
 
 

@@ -122,8 +122,10 @@ The scan runs in a FastAPI background task, allowing the dashboard to receive th
 Implementation:
 
 ```text
-apps/api/agentprobe/objectives.py
+apps/api/agentprobe/models.py
 ```
+
+`models.py` contains the settings layer, objective policy, and Pydantic domain contracts.
 
 The requested outcome is converted into an effective objective.
 
@@ -223,10 +225,10 @@ Profiler token usage is recorded separately.
 Implementation:
 
 ```text
-apps/api/agentprobe/template_repository.py
+apps/api/agentprobe/templates.py
 ```
 
-This component is not currently an LLM agent. It performs database retrieval.
+This component is not currently an LLM agent. `templates.py` contains the built-in corpus, local dataset loading and classification, and both local and MongoDB template repositories.
 
 MongoDB collection:
 
@@ -534,7 +536,7 @@ browser_detector
 Implementation:
 
 ```text
-apps/api/agentprobe/browser_sessions.py
+apps/api/agentprobe/main.py
 ```
 
 For authorized sites requiring login:
@@ -562,7 +564,7 @@ AgentProbe does not collect the username or password and does not bypass CAPTCHA
 Implementation:
 
 ```text
-apps/api/agentprobe/demo.py
+apps/api/agentprobe/main.py
 ```
 
 The built-in test target uses:
@@ -591,7 +593,7 @@ This creates a known ground truth for evaluator testing.
 Implementation:
 
 ```text
-apps/api/agentprobe/evaluator.py
+apps/api/agentprobe/pipeline.py
 ```
 
 Evaluation has three layers.
@@ -664,7 +666,7 @@ Current limitation: the initial queue usually already consumes the complete atte
 Implementation:
 
 ```text
-apps/api/agentprobe/reporting.py
+apps/api/agentprobe/pipeline.py
 ```
 
 The report generator is currently deterministic, not an LLM agent.
@@ -828,6 +830,8 @@ scripts/import_local_hackaprompt.py
 
 ## Four-Person Team Split
 
+The consolidated runtime consists of seven substantive backend modules: `models.py`, `agents.py`, `pipeline.py`, `templates.py`, `repository.py`, `adapters/targets.py`, and `main.py`. The dashboard has four authored frontend source files: `app/layout.tsx`, `app/page.tsx`, `app/globals.css`, and `lib/api.ts`.
+
 ### Person 1: Multi-Agent Pipeline
 
 Own these files:
@@ -835,9 +839,7 @@ Own these files:
 ```text
 apps/api/agentprobe/pipeline.py
 apps/api/agentprobe/agents.py
-apps/api/agentprobe/objectives.py
-apps/api/agentprobe/evaluator.py
-apps/api/agentprobe/reporting.py
+apps/api/agentprobe/models.py (objective policy)
 ```
 
 Responsibilities:
@@ -863,9 +865,8 @@ Review explanation:
 Own these files:
 
 ```text
-apps/api/agentprobe/adapters/
-apps/api/agentprobe/browser_sessions.py
-apps/api/agentprobe/demo.py
+apps/api/agentprobe/adapters/targets.py
+apps/api/agentprobe/main.py (browser session manager and controlled demo)
 tests/test_target_adapters.py
 ```
 
@@ -892,10 +893,8 @@ Own these files:
 
 ```text
 apps/api/agentprobe/main.py
-apps/api/agentprobe/config.py
 apps/api/agentprobe/models.py
 apps/api/agentprobe/repository.py
-apps/api/agentprobe/template_repository.py
 apps/api/agentprobe/templates.py
 scripts/import_local_hackaprompt.py
 start-local.ps1
@@ -925,8 +924,10 @@ Review explanation:
 Own these files:
 
 ```text
-apps/web/app/
-apps/web/lib/
+apps/web/app/layout.tsx
+apps/web/app/page.tsx
+apps/web/app/globals.css
+apps/web/lib/api.ts
 README.md
 AgentProbe.pptx
 ```
